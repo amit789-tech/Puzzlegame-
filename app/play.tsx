@@ -210,13 +210,18 @@ export default function Play() {
     (cell: Cell) => {
       if (solvedRef.current) return;
       const hit = rectAt(rectsRef.current, cell);
-      if (!hit) return;
+      if (!hit) {
+        // Tapping an empty cell places a 1x1 box (the only way to cover
+        // a "1" clue, since the pan gesture needs movement to start).
+        shikakuCommit({ r: cell.r, c: cell.c, w: 1, h: 1 });
+        return;
+      }
       shikakuUndo.current.push({ added: null, removed: [hit] });
       haptics.tick();
       playSfx('tap');
       setRects(rectsRef.current.filter((other) => other !== hit));
     },
-    [setRects],
+    [setRects, shikakuCommit],
   );
 
   // ----- Tools -----

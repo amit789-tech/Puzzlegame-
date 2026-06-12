@@ -187,7 +187,8 @@ export function SnapBoard({
                 const cx = (w.c + 0.5) * cell;
                 const cy = (w.r + 0.5) * cell;
                 const label = String(w.n);
-                const textWidth = waypointFont.measureText(label).width;
+                // getTextWidth (not measureText) — implemented on web too.
+                const textWidth = waypointFont.getTextWidth(label);
                 return (
                   <Group key={w.n}>
                     <Circle cx={cx} cy={cy} r={cell * 0.32} color={colors.waypoint} />

@@ -176,7 +176,8 @@ export function ShikakuBoard({ puzzle, rects, onCommit, onTapCell }: Props) {
             {clueFont &&
               puzzle.clues.map((clue, i) => {
                 const label = String(clue.value);
-                const textWidth = clueFont.measureText(label).width;
+                // getTextWidth (not measureText) — implemented on web too.
+                const textWidth = clueFont.getTextWidth(label);
                 const covered = rects.some(
                   (rect) =>
                     rectContains(rect, clue.r, clue.c) &&

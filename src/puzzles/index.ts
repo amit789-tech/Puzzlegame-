@@ -35,6 +35,7 @@ export const MODES: Record<PuzzleType, ModeInfo> = {
       'Each rectangle must contain exactly one number.',
       'That number is the area the rectangle must have.',
       'Drag diagonally to draw a rectangle; tap one to erase it.',
+      'Tap an empty cell to place a 1×1 box.',
     ],
   },
 };
