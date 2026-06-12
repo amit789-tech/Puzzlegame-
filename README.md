@@ -16,6 +16,15 @@ local MMKV storage.
 > gesture-handler are native modules — you need a custom dev build (see
 > below).
 
+## Play in the browser
+
+**https://amit789-tech.github.io/Puzzlegame-/** — deployed automatically
+from this branch by `.github/workflows/deploy-web.yml`. Works on phone
+browsers too; progress saves in the browser's local storage. (The web
+build has no haptics — that's the native app's job.)
+
+Locally: `npm install && npm run web`.
+
 ## Running on a device
 
 ```bash
