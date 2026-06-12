@@ -1,7 +1,7 @@
 import type { Cell, Difficulty } from '../src/engine/types';
 import type { SnapPuzzle, SnapWaypoint } from '../src/puzzles/snap/types';
 import { randomHamiltonianPath } from './backbite';
-import { mulberry32, randInt, shuffle } from './rng';
+import { mulberry32, shuffle } from './rng';
 import { countSnapSolutions } from './solve-snap';
 
 export interface GenSnapOptions {

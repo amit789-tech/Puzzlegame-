@@ -27,7 +27,7 @@ export function cellAt(index: number, cols: number): Cell {
   return { r: Math.floor(index / cols), c: index % cols };
 }
 
-const ORTHO: ReadonlyArray<readonly [number, number]> = [
+const ORTHO: readonly (readonly [number, number])[] = [
   [-1, 0],
   [1, 0],
   [0, -1],

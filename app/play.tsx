@@ -100,7 +100,7 @@ export default function Play() {
       setHelpVisible(true);
       markHelpSeen(next.type);
     }
-  }, []);
+  }, [setPath, setRects]);
 
   useEffect(() => {
     loadPuzzle();
