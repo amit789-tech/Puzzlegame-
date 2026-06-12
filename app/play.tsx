@@ -167,6 +167,25 @@ export default function Play() {
     [puzzle, setPath, handleSolved],
   );
 
+  // Pressing down on a cell already on the line rewinds the path back to
+  // that point (tap a numbered checkpoint to jump back there); the same
+  // gesture can then keep drawing from it.
+  const snapDown = useCallback(
+    (cell: Cell) => {
+      if (solvedRef.current) return;
+      const prev = pathRef.current;
+      const i = prev.findIndex((pc) => cellsEqual(pc, cell));
+      if (i !== -1 && i < prev.length - 1) {
+        haptics.place();
+        playSfx('tap');
+        setPath(prev.slice(0, i + 1));
+        return;
+      }
+      snapEnter(cell);
+    },
+    [setPath, snapEnter],
+  );
+
   const snapErase = useCallback(
     (cell: Cell) => {
       if (solvedRef.current) return;
@@ -283,6 +302,7 @@ export default function Play() {
           <SnapBoard
             puzzle={puzzle as SnapPuzzle}
             path={path}
+            onCellDown={snapDown}
             onCellEnter={snapEnter}
             onRelease={() => {}}
             onEraseAt={snapErase}

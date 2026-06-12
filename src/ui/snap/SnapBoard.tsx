@@ -26,6 +26,8 @@ import { colors } from '../theme/tokens';
 interface Props {
   puzzle: SnapPuzzle;
   path: Cell[];
+  /** Finger pressed down on a cell (parent may rewind the path there). */
+  onCellDown: (cell: Cell) => void;
   /** Finger entered a new cell while dragging (parent applies game rules). */
   onCellEnter: (cell: Cell) => void;
   /** Finger lifted (parent checks for completion). */
@@ -43,6 +45,7 @@ interface Props {
 export function SnapBoard({
   puzzle,
   path,
+  onCellDown,
   onCellEnter,
   onRelease,
   onEraseAt,
@@ -76,6 +79,15 @@ export function SnapBoard({
     [puzzle.rows, puzzle.cols, eraserActive, onEraseAt, onCellEnter],
   );
 
+  const handleDown = useCallback(
+    (r: number, c: number) => {
+      if (r < 0 || r >= puzzle.rows || c < 0 || c >= puzzle.cols) return;
+      if (eraserActive) onEraseAt({ r, c });
+      else onCellDown({ r, c });
+    },
+    [puzzle.rows, puzzle.cols, eraserActive, onEraseAt, onCellDown],
+  );
+
   const lastCellIndex = useSharedValue(-1);
 
   const pan = Gesture.Pan()
@@ -87,7 +99,7 @@ export function SnapBoard({
       const r = Math.floor(e.y / cell);
       const c = Math.floor(e.x / cell);
       lastCellIndex.value = r * puzzle.cols + c;
-      runOnJS(handleEnter)(r, c);
+      runOnJS(handleDown)(r, c);
     })
     .onUpdate((e) => {
       fingerX.value = Math.min(Math.max(e.x, 0), size);

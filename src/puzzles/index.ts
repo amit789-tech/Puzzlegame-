@@ -24,6 +24,7 @@ export const MODES: Record<PuzzleType, ModeInfo> = {
       'Start on 1 and pass through the numbers in order.',
       'The line must end on the highest number.',
       'Drag backwards along the line to erase it.',
+      'Tap a number (or any cell) on your line to rewind back to it.',
     ],
   },
   shikaku: {
