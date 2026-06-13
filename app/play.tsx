@@ -214,11 +214,18 @@ export default function Play() {
       const p = puzzle as ShikakuPuzzle;
       const prev = rectsRef.current;
 
-      const removed = prev.filter((other) => rectsOverlap(other, rect));
-      const next = [...prev.filter((other) => !rectsOverlap(other, rect)), rect];
-      shikakuUndo.current.push({ added: rect, removed });
+      // If the new rect would overlap an existing one, cancel it — the
+      // existing block wins and a short error pulse tells the player why.
+      const collides = prev.some((other) => rectsOverlap(other, rect));
+      if (collides) {
+        haptics.error();
+        playSfx('error');
+        return;
+      }
+      shikakuUndo.current.push({ added: rect, removed: [] });
       haptics.place();
       playSfx('place');
+      const next = [...prev, rect];
       setRects(next);
 
       const covered = next.reduce((sum, other) => sum + other.w * other.h, 0);
