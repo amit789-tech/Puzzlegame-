@@ -3,8 +3,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as haptics from '../src/audio/haptics';
 import { play as playSfx } from '../src/audio/sfx';
+import { useLocalSearchParams } from 'expo-router';
 import { cellsEqual } from '../src/engine/grid';
-import type { Cell } from '../src/engine/types';
+import type { Cell, PuzzleType } from '../src/engine/types';
 import { MODES, type AnyPuzzle } from '../src/puzzles';
 import { getNextPuzzle, getPuzzleById, markSolved } from '../src/puzzles/loader';
 import { longestCorrectPrefix } from '../src/puzzles/snap/hint';
@@ -49,6 +50,12 @@ function tierProgressOf(level: number): number {
 }
 
 export default function Play() {
+  // ?mode=snap / ?mode=shikaku restricts play to one mode's track; absent =
+  // the mixed alternating track.
+  const params = useLocalSearchParams<{ mode?: string }>();
+  const mode: PuzzleType | undefined =
+    params.mode === 'snap' || params.mode === 'shikaku' ? params.mode : undefined;
+
   const [puzzle, setPuzzle] = useState<AnyPuzzle | null>(null);
   const [path, setPathState] = useState<Cell[]>([]);
   const [rects, setRectsState] = useState<Rect[]>([]);
@@ -78,13 +85,15 @@ export default function Play() {
   }, []);
 
   const loadPuzzle = useCallback(() => {
-    const resumeId = getCurrentPuzzleId();
+    const resumeId = getCurrentPuzzleId(mode);
     let next: AnyPuzzle | null = null;
     if (resumeId && !getSolvedIds().includes(resumeId)) {
-      next = getPuzzleById(resumeId);
+      const resumed = getPuzzleById(resumeId);
+      // Guard against a stale id from the wrong track.
+      if (resumed && (!mode || resumed.type === mode)) next = resumed;
     }
-    if (!next) next = getNextPuzzle(getLevel(), getSolvedIds());
-    setCurrentPuzzleId(next.id);
+    if (!next) next = getNextPuzzle(getLevel(mode), getSolvedIds(), mode);
+    setCurrentPuzzleId(next.id, mode);
 
     setPuzzle(next);
     setPath([]);
@@ -100,7 +109,7 @@ export default function Play() {
       setHelpVisible(true);
       markHelpSeen(next.type);
     }
-  }, [setPath, setRects]);
+  }, [mode, setPath, setRects]);
 
   useEffect(() => {
     loadPuzzle();
@@ -109,14 +118,14 @@ export default function Play() {
   const handleSolved = useCallback((p: AnyPuzzle) => {
     solvedRef.current = true;
     const elapsedMs = Date.now() - startRef.current;
-    const { streak, session } = markSolved(p.id);
+    const { streak, session } = markSolved(p.id, mode);
     const isBestTime = recordTime(p.type, p.rows, p.cols, elapsedMs);
     setHeader({ streak, session });
     playSfx('success');
     haptics.success();
-    const nextLevel = getLevel() + 1;
+    const nextLevel = getLevel(mode) + 1;
     setSolved({ elapsedMs, isBestTime, nextLevel, tierProgress: tierProgressOf(nextLevel) });
-  }, []);
+  }, [mode]);
 
   // ----- Snap -----
 
@@ -286,12 +295,12 @@ export default function Play() {
 
   if (!puzzle) return <View style={styles.screen} />;
 
-  const mode = MODES[puzzle.type];
+  const modeInfo = MODES[puzzle.type];
 
   return (
     <SafeAreaView style={styles.screen}>
       <TopBar
-        modeName={mode.name}
+        modeName={modeInfo.name}
         streak={header.streak}
         session={header.session}
         onHelp={() => setHelpVisible(true)}
@@ -335,7 +344,7 @@ export default function Play() {
           elapsedMs={solved.elapsedMs}
           isBestTime={solved.isBestTime}
           onContinue={() => {
-            advance();
+            advance(mode);
             loadPuzzle();
           }}
         />
@@ -344,9 +353,9 @@ export default function Play() {
       {helpVisible && (
         <View style={styles.helpBackdrop}>
           <View style={styles.helpCard}>
-            <Text style={styles.helpTitle}>{mode.name}</Text>
-            <Text style={styles.helpTagline}>{mode.tagline}</Text>
-            {mode.howToPlay.map((line, i) => (
+            <Text style={styles.helpTitle}>{modeInfo.name}</Text>
+            <Text style={styles.helpTagline}>{modeInfo.tagline}</Text>
+            {modeInfo.howToPlay.map((line, i) => (
               <View key={i} style={styles.helpRow}>
                 <Text style={styles.helpBullet}>•</Text>
                 <Text style={styles.helpText}>{line}</Text>

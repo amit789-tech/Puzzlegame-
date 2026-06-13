@@ -1,3 +1,4 @@
+import type { PuzzleType } from '../engine/types';
 import shikakuBankJson from '../data/shikaku-bank.json';
 import snapBankJson from '../data/snap-bank.json';
 import { addSolvedId, setCurrentPuzzleId } from '../state/progress';
@@ -20,19 +21,31 @@ export function getPuzzleById(id: string): AnyPuzzle | null {
 }
 
 /**
- * Picks the lowest-level unsolved puzzle with puzzle.level >= level. When
- * the bank is exhausted at/above the requested level, falls back to a
- * random hard-tier puzzle so play never stops.
+ * Picks the lowest-level unsolved puzzle with puzzle.level >= level. Passing
+ * a mode restricts the search to that mode's puzzles (Snap-only / Shikaku-only
+ * tracks); omitting it uses the mixed track. When the bank is exhausted
+ * at/above the requested level, falls back to a random hard-tier puzzle from
+ * the same pool so play never stops.
  */
-export function getNextPuzzle(level: number, solvedIds: string[]): AnyPuzzle {
+export function getNextPuzzle(
+  level: number,
+  solvedIds: string[],
+  mode?: PuzzleType,
+): AnyPuzzle {
   const solved = new Set(solvedIds);
-  const next = track.find((p) => p.level >= level && !solved.has(p.id));
+  const pool = mode ? track.filter((p) => p.type === mode) : track;
+  const next = pool.find((p) => p.level >= level && !solved.has(p.id));
   if (next) return next;
 
   console.warn('bank exhausted — regenerate with tools/build-bank.ts');
-  const hard = track.filter((p) => p.difficulty === 'hard');
-  const pool = hard.length > 0 ? hard : track;
-  return pool[Math.floor(Math.random() * pool.length)];
+  const hard = pool.filter((p) => p.difficulty === 'hard');
+  const fallback = hard.length > 0 ? hard : pool;
+  return fallback[Math.floor(Math.random() * fallback.length)];
+}
+
+/** Level of the next puzzle a track would serve — for home-screen display. */
+export function peekNextLevel(level: number, solvedIds: string[], mode?: PuzzleType): number {
+  return getNextPuzzle(level, solvedIds, mode).level;
 }
 
 /**
@@ -40,10 +53,13 @@ export function getNextPuzzle(level: number, solvedIds: string[]): AnyPuzzle {
  * counters. (Best-time stats are recorded separately by the play screen,
  * which owns the timer.) Returns the updated streak/session for the header.
  */
-export function markSolved(id: string): { streak: number; session: number } {
+export function markSolved(
+  id: string,
+  mode?: PuzzleType,
+): { streak: number; session: number } {
   const puzzle = getPuzzleById(id);
   addSolvedId(id);
-  setCurrentPuzzleId(null);
+  setCurrentPuzzleId(null, mode);
   if (puzzle) incrementSolved(puzzle.type);
   return recordSolveDay();
 }
