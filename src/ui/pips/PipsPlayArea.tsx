@@ -274,12 +274,12 @@ export function PipsPlayArea({ puzzle, placements, onPlace, onRemove, solved }: 
       <View style={styles.tray}>
         {puzzle.dominoes.map((d, slot) => {
           const used = placements.some((p) => p.slot === slot);
-          const isHeld = held?.slot === slot;
-          if (used || isHeld) {
+          if (used) {
             return (
               <View key={slot} testID={`pips-tray-${slot}`} style={[styles.slot, styles.slotEmpty]} />
             );
           }
+          const isHeld = held?.slot === slot;
           const tilePan = Gesture.Pan()
             .onStart((e) => {
               runOnJS(grab)(slot, e.absoluteX - areaWinX.value, e.absoluteY - areaWinY.value);
@@ -295,12 +295,22 @@ export function PipsPlayArea({ puzzle, placements, onPlace, onRemove, solved }: 
           const tileTap = Gesture.Tap().maxDistance(10).onEnd(() => {
             runOnJS(liftToRest)(slot);
           });
+          // Keep the GestureDetector mounted even while this tile is held:
+          // if we swapped it for a plain placeholder, an in-flight pan would
+          // lose its host view and the drag would die ("stuck" until lifted).
           return (
             <GestureDetector key={slot} gesture={Gesture.Race(tilePan, tileTap)}>
-              <View testID={`pips-tray-${slot}`} style={styles.slot}>
-                <PipFace value={d.a} size={28} />
-                <View style={styles.dividerV} />
-                <PipFace value={d.b} size={28} />
+              <View
+                testID={`pips-tray-${slot}`}
+                style={isHeld ? [styles.slot, styles.slotEmpty] : styles.slot}
+              >
+                {!isHeld && (
+                  <>
+                    <PipFace value={d.a} size={28} />
+                    <View style={styles.dividerV} />
+                    <PipFace value={d.b} size={28} />
+                  </>
+                )}
               </View>
             </GestureDetector>
           );

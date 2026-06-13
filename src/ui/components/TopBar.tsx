@@ -63,6 +63,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    // Keep the bar (and its close button) above the help overlay so the
+    // player can always leave the puzzle, even while help is showing.
+    position: 'relative',
+    zIndex: 20,
+    backgroundColor: colors.bg,
   },
   title: {
     flexDirection: 'row',
