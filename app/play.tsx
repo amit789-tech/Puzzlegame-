@@ -16,9 +16,8 @@ import type { Rect, ShikakuPuzzle } from '../src/puzzles/shikaku/types';
 import { rectAt, rectsOverlap, validateRects } from '../src/puzzles/shikaku/validate';
 import { revealOnePlacement } from '../src/puzzles/pips/hint';
 import type { Placement, PipsPuzzle } from '../src/puzzles/pips/types';
-import { placementAt, validatePips } from '../src/puzzles/pips/validate';
-import { PipsBoard } from '../src/ui/pips/PipsBoard';
-import { PipsTray } from '../src/ui/pips/PipsTray';
+import { validatePips } from '../src/puzzles/pips/validate';
+import { PipsPlayArea } from '../src/ui/pips/PipsPlayArea';
 import { consumeHint, hintsRemaining } from '../src/state/hints';
 import {
   advance,
@@ -48,14 +47,6 @@ interface SolvedInfo {
 
 type ShikakuAction = { added: Rect | null; removed: Rect[] };
 
-/** Direction a domino's second cell extends from its anchor (right/down/left/up). */
-const PIPS_OFFSETS: [number, number][] = [
-  [0, 1],
-  [1, 0],
-  [0, -1],
-  [-1, 0],
-];
-
 /** 0..1 position of a level inside its difficulty tier (PRD §11 tiers). */
 function tierProgressOf(level: number): number {
   const [start, end] = level <= 200 ? [1, 200] : level <= 440 ? [201, 440] : [441, 640];
@@ -75,8 +66,6 @@ export default function Play() {
   const [path, setPathState] = useState<Cell[]>([]);
   const [rects, setRectsState] = useState<Rect[]>([]);
   const [placements, setPlacementsState] = useState<Placement[]>([]);
-  const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
-  const [orient, setOrient] = useState(0);
   const [eraser, setEraser] = useState(false);
   const [hintsLeft, setHintsLeft] = useState(0);
   const [solved, setSolved] = useState<SolvedInfo | null>(null);
@@ -125,8 +114,6 @@ export default function Play() {
     setPath([]);
     setRects([]);
     setPlacements([]);
-    setSelectedSlot(null);
-    setOrient(0);
     setEraser(false);
     setSolved(null);
     solvedRef.current = false;
@@ -308,60 +295,23 @@ export default function Play() {
     [puzzle, setPlacements, handleSolved],
   );
 
-  // Tap a tray domino: select it, or rotate it if already selected.
-  const pipsSelect = useCallback(
-    (slot: number) => {
+  const onPipsPlace = useCallback(
+    (slot: number, a: Cell, b: Cell) => {
       if (solvedRef.current) return;
-      if (placementsRef.current.some((pl) => pl.slot === slot)) return; // already placed
-      if (selectedSlot === slot) {
-        setOrient((o) => (o + 1) % 4);
-      } else {
-        setSelectedSlot(slot);
-        setOrient(0);
-      }
-      playSfx('tap');
+      if (placementsRef.current.some((pl) => pl.slot === slot)) return;
+      haptics.place();
+      playSfx('place');
+      commitPlacements([...placementsRef.current, { slot, a, b }]);
     },
-    [selectedSlot],
+    [commitPlacements],
   );
 
-  // Tap a board cell: remove the piece there, or drop the selected piece.
-  const pipsTapCell = useCallback(
-    (cell: Cell) => {
-      if (!puzzle || puzzle.type !== 'pips' || solvedRef.current) return;
-      const p = puzzle as PipsPuzzle;
-      const occupied = placementAt(placementsRef.current, cell);
-      if (occupied) {
-        haptics.tick();
-        playSfx('tap');
-        commitPlacements(placementsRef.current.filter((pl) => pl !== occupied));
-        setSelectedSlot(null);
-        return;
-      }
-      if (selectedSlot === null) return;
-
-      const board = new Set(p.cells.map((c) => `${c.r},${c.c}`));
-      const covered = new Set(
-        placementsRef.current.flatMap((pl) => [`${pl.a.r},${pl.a.c}`, `${pl.b.r},${pl.b.c}`]),
-      );
-      if (covered.has(`${cell.r},${cell.c}`)) return;
-
-      // Try the current orientation first, then the rest, so a tap "just works".
-      for (let k = 0; k < 4; k++) {
-        const [dr, dc] = PIPS_OFFSETS[(orient + k) % 4];
-        const b = { r: cell.r + dr, c: cell.c + dc };
-        if (!board.has(`${b.r},${b.c}`)) continue;
-        if (covered.has(`${b.r},${b.c}`)) continue;
-        haptics.place();
-        playSfx('place');
-        setOrient((orient + k) % 4);
-        commitPlacements([...placementsRef.current, { slot: selectedSlot, a: cell, b }]);
-        setSelectedSlot(null);
-        return;
-      }
-      haptics.error();
-      playSfx('error');
+  const onPipsRemove = useCallback(
+    (placement: Placement) => {
+      if (solvedRef.current) return;
+      commitPlacements(placementsRef.current.filter((pl) => pl !== placement));
     },
-    [puzzle, selectedSlot, orient, commitPlacements],
+    [commitPlacements],
   );
 
   // ----- Tools -----
@@ -380,7 +330,6 @@ export default function Play() {
       const prev = pipsHistory.current.pop();
       if (!prev) return;
       setPlacements(prev);
-      setSelectedSlot(null);
     }
     playSfx('tap');
   }, [puzzle, setPath, setRects, setPlacements]);
@@ -413,7 +362,6 @@ export default function Play() {
           ...placementsRef.current.filter((pl) => !removeSet.has(pl)),
           reveal.add,
         ];
-        setSelectedSlot(null);
         commitPlacements(next);
       }
     }
@@ -439,42 +387,35 @@ export default function Play() {
         onHelp={() => setHelpVisible(true)}
       />
 
-      <View style={styles.boardArea}>
-        {puzzle.type === 'snap' ? (
-          <SnapBoard
-            puzzle={puzzle as SnapPuzzle}
-            path={path}
-            onCellDown={snapDown}
-            onCellEnter={snapEnter}
-            onRelease={() => {}}
-            onEraseAt={snapErase}
-            eraserActive={eraser}
-          />
-        ) : puzzle.type === 'shikaku' ? (
-          <ShikakuBoard
-            puzzle={puzzle as ShikakuPuzzle}
-            rects={rects}
-            onCommit={shikakuCommit}
-            onTapCell={shikakuTap}
-          />
-        ) : (
-          <PipsBoard
-            puzzle={puzzle as PipsPuzzle}
-            placements={placements}
-            onTapCell={pipsTapCell}
-            selectedSlot={selectedSlot}
-          />
-        )}
-      </View>
-
-      {puzzle.type === 'pips' && (
-        <PipsTray
-          dominoes={(puzzle as PipsPuzzle).dominoes}
-          placedSlots={new Set(placements.map((pl) => pl.slot))}
-          selectedSlot={selectedSlot}
-          orient={orient}
-          onSelect={pipsSelect}
+      {puzzle.type === 'pips' ? (
+        <PipsPlayArea
+          puzzle={puzzle as PipsPuzzle}
+          placements={placements}
+          onPlace={onPipsPlace}
+          onRemove={onPipsRemove}
+          solved={!!solved}
         />
+      ) : (
+        <View style={styles.boardArea}>
+          {puzzle.type === 'snap' ? (
+            <SnapBoard
+              puzzle={puzzle as SnapPuzzle}
+              path={path}
+              onCellDown={snapDown}
+              onCellEnter={snapEnter}
+              onRelease={() => {}}
+              onEraseAt={snapErase}
+              eraserActive={eraser}
+            />
+          ) : (
+            <ShikakuBoard
+              puzzle={puzzle as ShikakuPuzzle}
+              rects={rects}
+              onCommit={shikakuCommit}
+              onTapCell={shikakuTap}
+            />
+          )}
+        </View>
       )}
 
       <ToolBar

@@ -91,33 +91,23 @@ function partition(cells: Cell[], rng: Rng, maxSize: number): Cell[][] {
   return regions;
 }
 
-/** Pick a constraint for a region that the solution satisfies. */
-function chooseConstraint(
+/** A looser constraint the solution still satisfies, for added variety. */
+function looserConstraint(
   values: number[],
   rng: Rng,
-  allowLoose: boolean,
-): { kind: PipsConstraintKind; value?: number } {
+): { kind: PipsConstraintKind; value?: number } | null {
   const sum = values.reduce((s, v) => s + v, 0);
-  const allEqual = values.every((v) => v === values[0]);
-  const allDistinct = new Set(values).size === values.length;
+  const allEqual = values.length >= 2 && values.every((v) => v === values[0]);
+  const allDistinct = values.length >= 2 && new Set(values).size === values.length;
 
-  if (!allowLoose) return { kind: 'sum', value: sum };
-
-  const options: { kind: PipsConstraintKind; value?: number; weight: number }[] = [
-    { kind: 'sum', value: sum, weight: 6 },
-  ];
-  if (values.length >= 2 && allEqual) options.push({ kind: 'eq', weight: 3 });
-  if (values.length >= 2 && allDistinct) options.push({ kind: 'neq', weight: 2 });
-  if (sum >= 1) options.push({ kind: 'gt', value: sum - 1, weight: 2 });
-  options.push({ kind: 'lt', value: sum + 1, weight: 2 });
-
-  const totalWeight = options.reduce((s, o) => s + o.weight, 0);
-  let roll = rng() * totalWeight;
-  for (const o of options) {
-    roll -= o.weight;
-    if (roll <= 0) return { kind: o.kind, value: o.value };
-  }
-  return { kind: 'sum', value: sum };
+  const options: { kind: PipsConstraintKind; value?: number }[] = [];
+  if (sum >= 1) options.push({ kind: 'gt', value: sum - 1 });
+  options.push({ kind: 'lt', value: sum + 1 });
+  if (allEqual) options.push({ kind: 'eq' }, { kind: 'eq' });
+  if (allDistinct) options.push({ kind: 'neq' }, { kind: 'neq' });
+  if (values.length >= 2) options.push({ kind: 'none' });
+  if (options.length === 0) return null;
+  return pick(rng, options);
 }
 
 export interface GenPipsOptions {
@@ -158,21 +148,35 @@ export function generatePips(opts: GenPipsOptions): Omit<PipsPuzzle, 'id' | 'lev
       valueAt.set(cellKey(t.b), dominoes[i].b);
     });
 
-    // A few partitions × constraint mixes per tiling before giving up on it.
-    for (let pAttempt = 0; pAttempt < 8; pAttempt++) {
+    for (let pAttempt = 0; pAttempt < 6; pAttempt++) {
       const groups = partition(cells, rng, maxRegion);
-      const allowLoose = pAttempt < 6; // last tries are all-'sum' (tightest)
 
+      // Start from the tightest puzzle: every region an exact sum. If that
+      // already pins a single solution we keep it, then relax regions one at
+      // a time for variety (>, <, =, ≠, none) — keeping a relaxation only
+      // while the puzzle stays unique.
       const regions: PipsRegion[] = groups.map((group, gi) => {
         const values = group.map((c) => valueAt.get(cellKey(c))!);
-        const { kind, value } = chooseConstraint(values, rng, allowLoose);
-        return { cells: group, kind, value, colorIndex: gi };
+        return {
+          cells: group,
+          kind: 'sum' as PipsConstraintKind,
+          value: values.reduce((s, v) => s + v, 0),
+          colorIndex: gi,
+        };
       });
+      if (countPipsSolutions({ cells, regions, dominoes }) !== 1) continue;
 
-      const solutions = countPipsSolutions({ cells, regions, dominoes });
-      if (solutions === 1) {
-        return { type: 'pips', difficulty, rows, cols, cells, regions, dominoes, solution };
+      for (const ri of shuffle(rng, [...regions.keys()])) {
+        if (rng() > 0.75) continue; // leave some exact-sum regions
+        const values = regions[ri].cells.map((c) => valueAt.get(cellKey(c))!);
+        const alt = looserConstraint(values, rng);
+        if (!alt) continue;
+        const saved = regions[ri];
+        regions[ri] = { ...saved, kind: alt.kind, value: alt.value };
+        if (countPipsSolutions({ cells, regions, dominoes }) !== 1) regions[ri] = saved;
       }
+
+      return { type: 'pips', difficulty, rows, cols, cells, regions, dominoes, solution };
     }
   }
   return null;
