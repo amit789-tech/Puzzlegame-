@@ -46,6 +46,7 @@ export function PipsPlayArea({ puzzle, placements, onPlace, onRemove, solved }: 
   const geomRef = useRef<BoardGeom | null>(null);
   const boardOffset = useRef({ x: 0, y: 0 });
   const heldRef = useRef<{ slot: number; orient: number } | null>(null);
+  const canRotateRef = useRef(false);
   const placementsRef = useRef<Placement[]>(placements);
   placementsRef.current = placements;
   heldRef.current = held;
@@ -129,6 +130,7 @@ export function PipsPlayArea({ puzzle, placements, onPlace, onRemove, solved }: 
       rot.value = withTiming(0, { duration: 120 });
       lifted.value = withSpring(1, { damping: 18, stiffness: 220 });
       setHeld({ slot, orient: 0 });
+      canRotateRef.current = true;
       setPreview(null);
       haptics.tick();
       playSfx('tap');
@@ -144,6 +146,7 @@ export function PipsPlayArea({ puzzle, placements, onPlace, onRemove, solved }: 
       rot.value = withTiming(0, { duration: 120 });
       lifted.value = withSpring(1, { damping: 18, stiffness: 220 });
       setHeld({ slot, orient: 0 });
+      canRotateRef.current = false;
       haptics.tick();
       playSfx('tap');
       updatePreview(lx, ly);
@@ -153,7 +156,7 @@ export function PipsPlayArea({ puzzle, placements, onPlace, onRemove, solved }: 
 
   const rotate = useCallback(() => {
     const h = heldRef.current;
-    if (!h) return;
+    if (!h || !canRotateRef.current) return;
     const next = (h.orient + 1) % 4;
     rot.value = withTiming(next * 90, { duration: 160 });
     setHeld({ slot: h.slot, orient: next });
