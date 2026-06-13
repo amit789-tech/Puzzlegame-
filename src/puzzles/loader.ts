@@ -1,18 +1,21 @@
 import type { PuzzleType } from '../engine/types';
+import pipsBankJson from '../data/pips-bank.json';
 import shikakuBankJson from '../data/shikaku-bank.json';
 import snapBankJson from '../data/snap-bank.json';
 import { addSolvedId, setCurrentPuzzleId } from '../state/progress';
 import { incrementSolved } from '../state/stats';
 import { recordSolveDay } from '../state/streak';
 import type { AnyPuzzle } from './index';
+import type { PipsPuzzle } from './pips/types';
 import type { ShikakuPuzzle } from './shikaku/types';
 import type { SnapPuzzle } from './snap/types';
 
 const snapBank = snapBankJson as unknown as SnapPuzzle[];
 const shikakuBank = shikakuBankJson as unknown as ShikakuPuzzle[];
+const pipsBank = pipsBankJson as unknown as PipsPuzzle[];
 
-/** Both banks merged, ascending by global level (types interleave). */
-const track: AnyPuzzle[] = [...snapBank, ...shikakuBank].sort(
+/** Every puzzle across all banks, for id lookups. */
+const track: AnyPuzzle[] = [...snapBank, ...shikakuBank, ...pipsBank].sort(
   (a, b) => a.level - b.level,
 );
 
@@ -33,7 +36,11 @@ export function getNextPuzzle(
   mode?: PuzzleType,
 ): AnyPuzzle {
   const solved = new Set(solvedIds);
-  const pool = mode ? track.filter((p) => p.type === mode) : track;
+  // The mixed track (no mode) alternates Snap + Shikaku only; Pips is a
+  // mode-only track with its own level numbering.
+  const pool = mode
+    ? track.filter((p) => p.type === mode)
+    : track.filter((p) => p.type === 'snap' || p.type === 'shikaku');
   const next = pool.find((p) => p.level >= level && !solved.has(p.id));
   if (next) return next;
 

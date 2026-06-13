@@ -47,7 +47,7 @@ export function resetProgress(): void {
   storage.remove('progress.level');
   storage.remove('progress.solvedIds');
   storage.remove('progress.currentPuzzleId');
-  for (const mode of ['snap', 'shikaku'] as const) {
+  for (const mode of ['snap', 'shikaku', 'pips'] as const) {
     storage.remove(levelKey(mode));
     storage.remove(currentKey(mode));
   }
@@ -58,6 +58,7 @@ export function resetProgress(): void {
   storage.remove('session.count');
   storage.remove('stats.solved.snap');
   storage.remove('stats.solved.shikaku');
+  storage.remove('stats.solved.pips');
   storage.remove('stats.bestMs');
   storage.remove('hints.remaining');
   storage.remove('hints.date');

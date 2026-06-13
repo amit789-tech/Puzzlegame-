@@ -10,6 +10,7 @@ interface Props {
   canUndo: boolean;
   onHint: () => void;
   hintsLeft: number;
+  showEraser?: boolean;
 }
 
 function Tool({
@@ -46,10 +47,20 @@ function Tool({
   );
 }
 
-export function ToolBar({ eraserActive, onEraser, onUndo, canUndo, onHint, hintsLeft }: Props) {
+export function ToolBar({
+  eraserActive,
+  onEraser,
+  onUndo,
+  canUndo,
+  onHint,
+  hintsLeft,
+  showEraser = true,
+}: Props) {
   return (
     <View style={styles.bar}>
-      <Tool glyph="◫" label="Eraser" onPress={onEraser} active={eraserActive} />
+      {showEraser && (
+        <Tool glyph="◫" label="Eraser" onPress={onEraser} active={eraserActive} />
+      )}
       <Tool glyph="↩" label="Undo" onPress={onUndo} disabled={!canUndo} />
       <Tool glyph="✦" label="Hint" onPress={onHint} disabled={hintsLeft <= 0} badge={hintsLeft} />
     </View>

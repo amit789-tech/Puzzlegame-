@@ -43,6 +43,7 @@ export default function Stats() {
           <StatTile label="Longest" value={getLongestStreak()} />
           <StatTile label="Snap solves" value={getSolvedCount('snap')} />
           <StatTile label="Shikaku solves" value={getSolvedCount('shikaku')} />
+          <StatTile label="Pips solves" value={getSolvedCount('pips')} />
         </View>
 
         <Text style={styles.section}>Best times</Text>
@@ -57,7 +58,7 @@ export default function Stats() {
                   {i > 0 && <View style={styles.divider} />}
                   <View style={styles.bestRow}>
                     <Text style={styles.bestLabel}>
-                      {type === 'snap' ? 'Snap' : 'Shikaku'} {size}
+                      {type === 'snap' ? 'Snap' : type === 'shikaku' ? 'Shikaku' : 'Pips'} {size}
                     </Text>
                     <Text style={styles.bestTime}>{formatMs(ms)}</Text>
                   </View>

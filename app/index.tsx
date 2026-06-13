@@ -3,7 +3,7 @@ import React, { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { PuzzleType } from '../src/engine/types';
-import { getLevel, getCurrentPuzzleId, getSolvedIds } from '../src/state/progress';
+import { getLevel, getCurrentPuzzleId } from '../src/state/progress';
 import { getSessionCount, getStreak } from '../src/state/streak';
 import { StreakBadge } from '../src/ui/components/StreakBadge';
 import { fonts } from '../src/ui/theme/fonts';
@@ -63,6 +63,7 @@ export default function Home() {
     mixed: getLevel(),
     snap: getLevel('snap'),
     shikaku: getLevel('shikaku'),
+    pips: getLevel('pips'),
   });
 
   useFocusEffect(
@@ -73,6 +74,7 @@ export default function Home() {
         mixed: getLevel(),
         snap: getLevel('snap'),
         shikaku: getLevel('shikaku'),
+        pips: getLevel('pips'),
       });
     }, []),
   );
@@ -85,6 +87,7 @@ export default function Home() {
   const mixedHasProgress = levels.mixed > 1 || getCurrentPuzzleId() !== null;
   const snapHasProgress = levels.snap > 1 || getCurrentPuzzleId('snap') !== null;
   const shikakuHasProgress = levels.shikaku > 1 || getCurrentPuzzleId('shikaku') !== null;
+  const pipsHasProgress = levels.pips > 1 || getCurrentPuzzleId('pips') !== null;
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -121,6 +124,14 @@ export default function Home() {
           level={levels.shikaku}
           hasProgress={shikakuHasProgress}
           onPress={() => go('shikaku')}
+        />
+        <ModeCard
+          label="Pips"
+          subtitle="Fill the board with dominoes"
+          accentColor="#7CB342"
+          level={levels.pips}
+          hasProgress={pipsHasProgress}
+          onPress={() => go('pips')}
         />
       </View>
 

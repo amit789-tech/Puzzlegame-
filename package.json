@@ -10,6 +10,7 @@
     "test": "jest",
     "typecheck": "tsc --noEmit",
     "bank": "tsx tools/build-bank.ts",
+    "bank:pips": "tsx tools/build-pips-bank.ts",
     "sfx": "tsx tools/gen-sfx.ts"
   },
   "dependencies": {

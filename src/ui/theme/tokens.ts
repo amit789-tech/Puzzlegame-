@@ -26,6 +26,22 @@ export const colors = {
     'rgba(255, 138, 92, 0.32)',
   ] as const,
   rectStroke: '#F2F4F6',
+  // Pips: a region palette of [solid badge color, translucent cell fill].
+  pipsRegions: [
+    { solid: '#7C5CD9', fill: 'rgba(124, 92, 217, 0.28)' },
+    { solid: '#C2185B', fill: 'rgba(229, 72, 130, 0.28)' },
+    { solid: '#0E8C8C', fill: 'rgba(38, 178, 178, 0.26)' },
+    { solid: '#D9730D', fill: 'rgba(229, 138, 24, 0.28)' },
+    { solid: '#4C7A2E', fill: 'rgba(124, 179, 66, 0.26)' },
+    { solid: '#1E5BB0', fill: 'rgba(56, 132, 224, 0.28)' },
+    { solid: '#9A6AD9', fill: 'rgba(176, 132, 252, 0.26)' },
+    { solid: '#B0641E', fill: 'rgba(255, 138, 92, 0.26)' },
+  ] as const,
+  // Pips: domino tile + pip dot colors.
+  pipsTile: '#ECEFF2',
+  pipsTileSelected: '#FFF4CC',
+  pipsDot: '#1A2026',
+  pipsDivider: '#B8C0C8',
 };
 
 export const spacing = {
